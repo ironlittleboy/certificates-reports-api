@@ -61,7 +61,7 @@ informeRouter.post("/generate-informe/:tipoInforme/:studentId", (req, res) => {
         const verticalPosition = (pageHeight - textHeight) / 2 - 100;
         const textMargin = 50;
         const lineHeight = 15;
-
+        doc.moveDown(2);
         doc.fontSize(18).text(`Informe ${tituloInforme}`, { align: "center" }).moveDown(1);
 
         doc.fontSize(12)

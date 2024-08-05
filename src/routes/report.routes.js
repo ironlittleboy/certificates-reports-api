@@ -11,12 +11,32 @@ const __dirname = dirname(__filename);
 
 const reportRouter = Router();
 
+reportRouter.get('/all-reports/:studentId', (req, res) => {
+  const { studentId } = req.params;
+  db.query('SELECT * FROM reportes where Id_estudiante = ?', [studentId], (error, results) => {
+    if (error) {
+      console.error('Error al consultar reportes:', error);
+      return res.status(500).json({ error: 'Error al consultar reportes', status: false });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron reportes', status: false });
+    }
+    res.status(200).json({
+       status: true, 
+       message: 'Reportes consultados correctamente',
+       data: results 
+      });
+  });
+});
+
 reportRouter.post("/generate-report/:type/:studentId", (req, res) => {
+  // Obtener los parámetros de la solicitud
   const { type, studentId } = req.params;
   const { asunto, causaReporte } = req.body;
   const currentDate = new Date().toISOString().replace(/[:]/g, "-").split("T")[0];
   const randomNumerByDate = new Date().valueOf();
-
+  
+  
   db.query(
     "SELECT * FROM estudiantes join semestre on estudiantes.Id_semestre = semestre.Id_semestre join periodo on estudiantes.Id_periodo = periodo.Id_periodo WHERE Id_estudiante = ?",
     [studentId],
@@ -197,7 +217,7 @@ reportRouter.post("/generate-report/:type/:studentId", (req, res) => {
 
         // Insertar en la tabla de reportes
         db.query(
-          "INSERT into reportes (`Descripcion_reporte`, `Fecha_reporte`, `Causa_reporte`, `Id_estudiante`, `Id_periodo`, `filePathReporte`, `fileNameReporte`) values (?, ?, ?, ?, ?, ?, ?);",
+          "INSERT into reportes (`Descripcion_reporte`, `Fecha_reporte`, `Causa_reporte`, `Id_estudiante`, `Id_periodo`, `filePathReporte`, `fileNameReporte`, `tipo_reporte`) values (?, ?, ?, ?, ?, ?, ?, ?);",
           [
             asunto,
             currentDate,
@@ -205,7 +225,8 @@ reportRouter.post("/generate-report/:type/:studentId", (req, res) => {
             studentId,
             studentData.Id_periodo,
             downloadLink,
-            fileName
+            fileName,
+            type
           ],
           (error, results) => {
             if (error) {
@@ -232,5 +253,42 @@ reportRouter.post("/generate-report/:type/:studentId", (req, res) => {
 });
 
 
+
+reportRouter.get("/download-pdf/:studentId/:fileName", (req, res) => {
+  const { fileName, studentId } = req.params;
+  db.query("SELECT * from reportes join estudiantes on estudiantes.`Id_estudiante` = reportes.`Id_estudiante` WHERE estudiantes.`Id_estudiante` = ? and reportes.fileNameReporte = ?", [studentId, fileName], (error, results) => {
+    if (error) {
+      console.error("Error al consultar reporte:", error);
+      return res.status(500).json({
+        error: "Error al consultar reporte",
+        status: false,
+      });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        error: "Reporte no encontrado",
+        status: false,
+      });
+    }
+
+    console.log(results[0]);
+    const studentData = results[0];
+    const filePath = path.join(__dirname, `../../upload/reporte/${studentData.Nombres.replace(/\s/g, "")}_${studentData.Id_estudiante}`, fileName);
+    console.log(filePath);
+    // Verificar si el archivo existe
+    if (fs.existsSync(filePath)) {
+      // Enviar el archivo para su descarga
+      res.download(filePath, fileName, (err) => {
+        if (err) {
+          console.error('Error al enviar el archivo:', err);
+          res.status(500).json({ error: 'Error al enviar el archivo', status: false });
+        }
+      });
+    } else {
+      res.status(404).json({ error: 'Archivo no encontrado', status: false });
+    } 
+  });
+});
 
 export default reportRouter;
