@@ -11,7 +11,7 @@ const __dirname = dirname(__filename);
 
 const reportRouter = Router();
 
-reportRouter.get('/all-reports/:studentId', (req, res) => {
+reportRouter.get('/get-reports/:studentId', (req, res) => {
   const { studentId } = req.params;
   db.query('SELECT * FROM reportes where Id_estudiante = ?', [studentId], (error, results) => {
     if (error) {
@@ -58,7 +58,8 @@ reportRouter.post("/generate-report/:type/:studentId", (req, res) => {
 
       const studentData = results[0];
       const doc = new PDFDocument();
-
+      const fechaInicio = new Date(studentData.Fecha_inicio).toLocaleDateString();
+      const fechaFin = new Date(studentData.Fecha_fin).toLocaleDateString();
       // Lógica para el reporte
       try {
         if (type === "reporte-general") {
@@ -89,7 +90,7 @@ reportRouter.post("/generate-report/:type/:studentId", (req, res) => {
 
           doc
             .text(
-              `Debido a su excelente desempeño académico, el/la estudiante ${studentData.Nombres} con C.I. ${studentData.Cedula} de la carrera ${studentData.Carrera} del ${studentData.Nombre_semestre}, por su destacada participación lo hace acreedor a reconocimiento, periodo académico ${studentData.Nombre_periodo},${studentData.fecha_inicio} hasta ${studentData.fecha_fin} ,con registro de matrícula ${studentData.CodigoMatricula}.`,
+              `Debido a su excelente desempeño académico, el/la estudiante ${studentData.Nombres} con C.I. ${studentData.Cedula} de la carrera ${studentData.Carrera} del ${studentData.Nombre_semestre}, por su destacada participación lo hace acreedor a reconocimiento, periodo académico ${studentData.Nombre_periodo}, ${fechaInicio} hasta ${fechaFin} ,con registro de matrícula ${studentData.CodigoMatricula}.`,
               textMargin,
               doc.y,
               { width: 450, align: "justify" }
@@ -128,7 +129,7 @@ reportRouter.post("/generate-report/:type/:studentId", (req, res) => {
 
           doc
             .text(
-              `Que el/la señor/señorita ${studentData.Nombres} con C.I. ${studentData.Cedula}, del ${studentData.Nombre_semestre} de la carrera de Tecnologías de la Información, periodo académico ${studentData.Nombre_periodo},${studentData.fecha_inicio} hasta ${studentData.fecha_fin},con registro de matrícula ${studentData.CodigoMatricula}. Se ha involucrado en una acción sancionable.`,
+              `Que el/la señor/señorita ${studentData.Nombres} con C.I. ${studentData.Cedula}, del ${studentData.Nombre_semestre} de la carrera de Tecnologías de la Información, periodo académico ${studentData.Nombre_periodo}, ${fechaInicio} hasta ${fechaFin},con registro de matrícula ${studentData.CodigoMatricula}. Se ha involucrado en una acción sancionable.`,
               textMargin,
               doc.y,
               { width: 450, align: "justify" }
@@ -272,10 +273,10 @@ reportRouter.get("/download-pdf/:studentId/:fileName", (req, res) => {
       });
     }
 
-    console.log(results[0]);
+    // console.log(results[0]);
     const studentData = results[0];
     const filePath = path.join(__dirname, `../../upload/reporte/${studentData.Nombres.replace(/\s/g, "")}_${studentData.Id_estudiante}`, fileName);
-    console.log(filePath);
+    // console.log(filePath);
     // Verificar si el archivo existe
     if (fs.existsSync(filePath)) {
       // Enviar el archivo para su descarga

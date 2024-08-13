@@ -11,6 +11,30 @@ const __dirname = dirname(__filename);
 
 const informeRouter = Router();
 
+informeRouter.get("/get-informes/:studentId", (req, res) => {
+  const { studentId } = req.params;
+  db.query("SELECT * FROM informes WHERE Id_estudiante = ?", [studentId], (error, results) => {
+    if (error) {
+      console.error("Error al consultar informes:", error);
+      return res.status(500).json({
+        error: "Error al consultar informes",
+        status: false
+      });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({
+        error: "No se encontraron informes",
+        status: false
+      });
+    }
+    res.status(200).json({
+      status: true,
+      message: "Informes obtenidos correctamente",
+      data: results
+    });
+  });
+});
+
 informeRouter.post("/generate-informe/:tipoInforme/:studentId", (req, res) => {
   const { studentId, tipoInforme } = req.params;
   const { tituloInforme, contenidoInforme } = req.body;
@@ -50,6 +74,7 @@ informeRouter.post("/generate-informe/:tipoInforme/:studentId", (req, res) => {
       }
 
       const studentData = results[0];
+      console.log(studentData);
       const doc = new PDFDocument();
 
       // Lógica para el informe
@@ -75,11 +100,13 @@ informeRouter.post("/generate-informe/:tipoInforme/:studentId", (req, res) => {
 
         doc.fontSize(15).text("Informa:", textMargin, doc.y, { width: 450, align: "left" }).moveDown(1.5);
 
-        const fechaInicio = new Date(studentData.fecha_inicio).toLocaleDateString();
-        const fechaFin = new Date(studentData.fecha_fin).toLocaleDateString();
+        const fechaInicio = new Date(studentData.Fecha_inicio).toLocaleDateString();
+        const fechaFin = new Date(studentData.Fecha_fin).toLocaleDateString();
+        console.log(fechaInicio, fechaFin);
+        
         doc.fontSize(12)
           .text(
-            `Debido a su ${setTipoInforme}, el/la estudiante ${studentData.Nombres} con C.I. ${studentData.Cedula}, de la carrera de ${studentData.Carrera}, en el periodo vigente ${studentData.Nombre_periodo}, desde ${fechaInicio} hasta ${fechaFin}, por su ${setTipoInforme} lo hace acreedor a reconocimiento por parte de la institución.`
+            `Debido a su ${setTipoInforme}, el/la estudiante ${studentData.Nombres} con C.I. ${studentData.Cedula}, de la carrera de ${studentData.Carrera}, del ${studentData.Nombre_semestre} NIVEL, en el periodo vigente ${studentData.Nombre_periodo}, desde ${fechaInicio} hasta ${fechaFin}, por su ${setTipoInforme} lo hace acreedor a reconocimiento por parte de la institución.`
           )
           .moveDown(1.5);
 
@@ -117,7 +144,7 @@ informeRouter.post("/generate-informe/:tipoInforme/:studentId", (req, res) => {
           console.warn(`La imagen 'imagen-3.jpeg' no se encontró en el directorio 'images'.`);
         }
 
-        // Crear el directorio para el informe
+        // Crear el directorio para el informe  
         const folderPath = path.join(__dirname, `../../upload/informe/${studentData.Nombres.replace(/\s/g, "")}_${studentData.Id_estudiante}`);
         if (!fs.existsSync(folderPath)) {
           fs.mkdirSync(folderPath, { recursive: true });

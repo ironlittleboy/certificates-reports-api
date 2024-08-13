@@ -1,7 +1,68 @@
 import { Router } from "express";
 import { db } from "../db.js";
 import bcrypt from 'bcrypt';
+import { error } from "pdf-lib";
 const authRouter = Router();
+
+
+authRouter.put('/make-admin/:id', (req, res) => {
+  const { id } = req.params;
+  const query = `UPDATE Login SET role = 'admin' WHERE Id_login = ?`;
+  db.query(query, [id], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).json({
+        error: "Error al actualizar usuario",
+        status: false,
+        message: 'Error al actualizar usuario'
+      });
+      return;
+    }
+    res.status(200).json({
+      status: true,
+      message: 'Usuario actualizado correctamente, ahora es administrador'
+    });
+  });
+});
+
+authRouter.put('/revoke-admin/:id', (req, res) => { 
+  const { id } = req.params;
+  const query = `UPDATE Login SET role = 'user' WHERE Id_login = ?`;
+  db.query(query, [id], (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).json({
+        error: "Error al actualizar usuario",
+        status: false,
+        message: 'Error al actualizar usuario'
+      });
+      return;
+    }
+    res.status(200).json({
+      status: true,
+      message: 'Usuario actualizado correctamente, ahora es usuario'
+    });
+  });
+});
+
+authRouter.get('/users', (req, res) => {
+  db.query('SELECT * FROM Login', (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(500).json({
+        error: "Error al obtener usuarios",
+        status: false,
+        message: 'Error al obtener usuarios'
+      });
+      return;
+    }
+    res.status(200).json({
+      status: true,
+      message: "Usuarios obtenidos correctamente",
+      data: result
+    });
+  });
+});
 
 authRouter.post('/login', (req, res) => {
   const { usuario, password } = req.body;
@@ -45,13 +106,14 @@ authRouter.post('/login', (req, res) => {
         id: user.id,
         usuario: user.usuario,
         email: user.email,
+        role: user.role,
       }
     });
   });
 });
 
 authRouter.post('/register', (req, res) => {
-  const { usuario, password, email } = req.body;
+  const { usuario, password, email, role } = req.body;
   const hashedPassword = bcrypt.hashSync(password, 10);
   // validation usenmae must be unique
   const queryUsername = `SELECT * FROM Login WHERE usuario = ?`;
@@ -91,11 +153,11 @@ authRouter.post('/register', (req, res) => {
       return;
     }
   });
-  const query = `INSERT INTO Login (usuario, password, email) VALUES (?, ?, ?)`;
+  const query = `INSERT INTO Login (usuario, password, email, role) VALUES (?, ?, ?, ?)`;
   // console.log(query);
-  db.query(query, [usuario, hashedPassword, email], (err, result) => {
+  db.query(query, [usuario, hashedPassword, email, role], (err, result) => {
     if (err) {
-      // console.log(err);
+      console.log(err);
       res.status(500).json({
         error: err.message,
         status: false,

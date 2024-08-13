@@ -1,13 +1,10 @@
 import express from 'express';
-import { db } from './db.js';
-import fs from 'fs';
-import PDFDocument from "pdfkit";
-import xlsx from 'xlsx';
 import authRouter from './routes/auth.routes.js';
 import periodoRouter from './routes/periodo.routes.js';
 import studentsRouter from './routes/students.routes.js';
 import semestreRouter from './routes/semestre.routes.js';
-import { getCurrentDate } from './utils.js';
+import practiceRouter from './routes/practice.routes.js';
+import { config } from 'dotenv';
 import fileUpload from 'express-fileupload';
 import session from 'express-session';
 import morgan from 'morgan';
@@ -15,8 +12,8 @@ import cors from 'cors';
 import reportRouter from './routes/report.routes.js';
 import certificatesRotuer from './routes/certificates.routes.js';
 import informeRouter from './routes/informe.routes.js';
-const doc = new PDFDocument();
 const app = express();
+config();
 
 // Middleware para manejar tipo de contenido JSON y URLEncoded
 app.use(cors());
@@ -39,27 +36,27 @@ app.use('/api/semestre', semestreRouter);
 app.use('/api/report', reportRouter);
 app.use('/api/certificado', certificatesRotuer);
 app.use('/api/informe', informeRouter);
-
+app.use('/api/practice', practiceRouter);
 // Middleware para manejar sesiones
 app.use(
   session({
-    secret: "secret",
+    secret: process.env.JWT_SECRET,
     resave: true,
     saveUninitialized: true,
   })
 );
 
 // Hello World :D
-app.get('/', (req, res) => {
+/* app.get('/', (req, res) => {
   res.send('Hello World');
 });
-
-app.get('/pdf', (req, res) => {
+ */
+/* app.get('/pdf', (req, res) => {
   doc.pipe(fs.createWriteStream('upload/informe/output.pdf'));
   doc.fontSize(25).text('Hello World', 100, 100);
   doc.end();
   res.send('PDF created!');
-});
+}); */
 
 app.listen(3000, () => {
   console.log('Server is running on http://localhost:3000');

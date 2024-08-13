@@ -3,13 +3,12 @@ import { db } from "../db.js";
 import fs, { stat } from "fs";
 import PDFDocument from "pdfkit";
 import path from "path";
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const certificatesRotuer = Router();
-
 
 // Ruta para generar y descargar un certificado en PDF con datos dinámicos
 certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
@@ -18,31 +17,32 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
 
   // Consultar la base de datos para obtener los datos del estudiante
   db.query(
-    "SELECT * FROM estudiantes join semestre on estudiantes.Id_semestre = semestre.Id_semestre join periodo on estudiantes.Id_periodo = periodo.Id_periodo WHERE Id_estudiante = ?",
+    "SELECT estudiantes.*, semestre.*, periodo.*, practicas.Lugar_de_practicas, practicas.Tutor_practicas, practicas.Estado_practicas, practicas.Tipo_de_practicas FROM estudiantes join semestre on estudiantes.Id_semestre = semestre.Id_semestre join periodo on estudiantes.Id_periodo = periodo.Id_periodo left join practicas on estudiantes.Id_estudiante = practicas.Id_estudiante WHERE estudiantes.Id_estudiante = ?",
     [studentId],
     (error, results) => {
       if (error) {
         console.error("Error al consultar datos del estudiante:", error);
         return res.status(500).json({
-          error: "Error interno del servidor al consultar datos del estudiante",
-          status: false
+          message:
+            "Error interno del servidor al consultar datos del estudiante",
+          status: false,
         });
       }
 
       if (results.length === 0) {
-        return res.status(404).json({ 
-          error: "Estudiante no encontrado",
-          status: false 
+        return res.status(404).json({
+          message: "Estudiante no encontrado",
+          status: false,
         });
       }
 
       const studentData = results[0];
-
+      // console.log(studentData);
       // Iniciar el documento PDF
       const doc = new PDFDocument();
 
       // Configurar encabezados, fuentes, estilos, etc.
-      doc.font("Times-Roman");
+      doc.font("Helvetica");
 
       // Agregar contenido específico al certificado
       if (certificadoType === "certificado-conducta") {
@@ -64,13 +64,22 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
             50,
             verticalPosition + 50
           );
-      } else if (certificadoType === "certificado-practicas") {
+      } else if (certificadoType === "certificado-practicas" ) {
+        // Verificar si el estudiante tiene prácticas registradas
+/*         if (studentData.Id_practicas === null) {
+          console.log("Estudiante no tiene practicas registradas");
+          return res.status(404).json({
+            error: "Estudiante no tiene practicas registradas",
+            status: false,
+          });
+        } */
         // Obtener la altura de la página
         const pageHeight = doc.page.height;
         const textHeight = 200; // Ajusta según sea necesario
         const verticalPosition = (pageHeight - textHeight) / 2;
         const textMargin = 50; // Margen desde el borde
         const lineHeight = 15; // Altura de cada línea
+        const columnWidth = (doc.page.width - textMargin * 2) / 2; // Ancho de la columna
 
         // Escribir el texto utilizando la posición vertical calculada
         // Configurar el título
@@ -91,36 +100,102 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
           .moveDown(2); // Espaciado después del primer bloque
 
         // Texto "CERTIFICA"
-        doc.fontSize(12).text("CERTIFICA", { align: "center" }).moveDown(2); // Espaciado después de "CERTIFICA"
+        doc.fontSize(12).text("Otorgado a:", { align: "center" }).moveDown(1); // Espaciado después de "CERTIFICA"
+        doc.font("Helvetica-Bold").fontSize(20).text(studentData.Nombres, { align: "center" }).moveDown(1); // Espaciado después del nombre
 
         // Segundo bloque de texto
         doc
+          .fontSize(12)
+          .font("Helvetica")
           .text(
-            `Que revisado los registros del Sistema de Gestión Académica SGA, el señor ${
-              studentData.Nombres
-            } con C.I. ${studentData.Cedula}, consta matriculado en el ${
-              studentData.Semestre
-            } NIVEL de la carrera de ${
-              studentData.Carrera
-            }, periodo académico ${studentData.Nombre_periodo},${studentData.fecha_inicio} hasta ${studentData.fecha_fin}, con registro de matrícula ${studentData.CodigoMatricula}. El peticionario puede hacer uso de la presente para trámites universitarios de becas.`,
+            "Por haber culminado satisfactoriamente las ",
             textMargin,
             doc.y,
-            { width: 450, align: "justify" }
-          )
-          .moveDown(2); // Espaciado después del segundo bloque
+            { width: 450, align: "justify", continued: true }
+          );
+        doc.font("Helvetica-Bold").text("48 horas ", { continued: true });
+        doc
+          .font("Helvetica")
+          .fontSize(12)
+          .text("de Practicas Preprofesionales correspondientes a ", {
+            continued: true,
+          });
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(12)
+          .text('"Practicas Laborales II (Octavo Nivel)" ', {
+            continued: true,
+          });
+        doc
+          .font("Helvetica")
+          .fontSize(12)
+          .text("realizadas en ", { continued: true });
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(12)
+          .text(studentData.Lugar_de_practicas? studentData.Lugar_de_practicas + " " : "'No establecido'", { continued: true });
+        
+        doc
+          .fontSize(12)
+          .font("Helvetica")
+          .text("y supervisadas por el/la Ing. ", { continued: true });
 
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(12)
+          .text(studentData.Tutor_practicas? studentData.Tutor_practicas + " " : "'No establecido'", { continued: true });
+        doc
+          .fontSize(12)
+          .font("Helvetica")
+          .text(`, en el periodo ${studentData.Nombre_periodo}.`, {
+            continued: true
+          }) 
+          .moveDown(1); // Espaciado después del segundo bloque
+        
+        doc
+          .fontSize(12)
+          .text(`Manta, ${new Date().toLocaleDateString()}`, { align: "right" })
+          .moveDown(2); // Espaciado después de la fecha
         // Texto "Lo Certifica,"
-        doc.text("Lo Certifica,", { align: "center" }).moveDown(2); // Espaciado después de "Lo Certifica,"
-
+/*         doc.text("Lo Certifica,", { align: "center" }).moveDown(2); // Espaciado después de "Lo Certifica,"
+ */
         // Texto final
         doc
-          .text("Ing. María Elena Garcia Vélez", { align: "center" })
-          .text("Secretaria Carrera de Tecnologías de la Información", {
-            align: "center",
-          })
-          .text(`Manta, ${new Date().toLocaleDateString()}`, {
-            align: "center",
+          .text("Ing. María Elena Garcia Vélez", textMargin, doc.y,{ align: "center", width: columnWidth, continued : true });
+
+        doc
+          .font("Helvetica")
+          .text(studentData.Tutor_practicas ? studentData.Tutor_practicas : "No definido", textMargin + columnWidth - 90, doc.y, {
+          align: "center", width: columnWidth
+        });
+        doc
+          .font("Helvetica-Bold")
+          .text("Secretaria Carrera de Tecnologías de la Información", textMargin, doc.y, {
+            align: "center", width: columnWidth, continued: true
           });
+        doc
+          .font("Helvetica-Bold")
+          .text("Tutor de Prácticas", textMargin + columnWidth - 45, doc.y, {
+            align: "center", width: columnWidth
+          });
+        
+        // acutalizar el campo certificado_practica en la tabla estudaintes
+        db.query(
+          "UPDATE estudiantes SET certificado_practicas = 1 WHERE Id_estudiante = ?",
+          [studentId],
+          (error, results) => {
+            if (error) {
+              console.error(
+                "Error al actualizar campo 'certificado_practicas' en la base de datos:",
+                error
+              );
+            }
+            console.log(
+              "Campo 'certificado_practicas' actualizado correctamente en la base de datos."
+            );
+            // console.log(results);
+          }
+        );
       } else if (certificadoType === "certificado-matricula") {
         // Obtener la altura de la página
         const pageHeight = doc.page.height;
@@ -138,7 +213,9 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
         // Texto principal
 
         // formatear fecha
-        const fecha_inicio = new Date(studentData.Fecha_inicio).toLocaleDateString();
+        const fecha_inicio = new Date(
+          studentData.Fecha_inicio
+        ).toLocaleDateString();
         const fecha_fin = new Date(studentData.Fecha_fin).toLocaleDateString();
         console.log(fecha_inicio, fecha_fin);
         doc
@@ -148,7 +225,17 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
           .text(studentData.Nombres, { align: "center" })
           .moveDown(2) // Espaciado después del nombre
           .text(
-            `Que revisado los  registros  del  Sistema de Gestión Académica SGA, el/la señor/señorita ${studentData.Nombres.toUpperCase()}  con C.I. ${studentData.Cedula},  consta matriculado  en el ${studentData.Nombre_semestre} NIVEL de la carrera de ${studentData.Carrera}, periodo académico ${studentData.Nombre_periodo} con registro de matrícula ${studentData.CodigoMatricula}, mismo que inició ${fecha_inicio} y culmina el ${fecha_fin}.`,
+            `Que revisado los  registros  del  Sistema de Gestión Académica SGA, el/la señor/señorita ${studentData.Nombres.toUpperCase()}  con C.I. ${
+              studentData.Cedula
+            },  consta matriculado  en el ${
+              studentData.Nombre_semestre
+            } NIVEL de la carrera de ${
+              studentData.Carrera
+            }, periodo académico ${
+              studentData.Nombre_periodo
+            } con registro de matrícula ${
+              studentData.CodigoMatricula
+            }, mismo que inició ${fecha_inicio} y culmina el ${fecha_fin}.`,
             textMargin,
             doc.y,
             { width: 450, align: "justify" }
@@ -179,7 +266,7 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
       const imagePath2 = path.join(__dirname, "../../images", "imagen-2.jpeg");
       const imagePath3 = path.join(__dirname, "../../images", "imagen-3.jpeg");
       // console.log(imagePath1, imagePath2, imagePath3);
-      
+
       // Ajusta la posición y tamaño de cada imagen según sea necesario
       try {
         if (fs.existsSync(imagePath1)) {
@@ -216,12 +303,14 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `inline; filename=${certificadoType}_${new Date().getTime()}_${studentData.Cedula}.pdf`
+        `inline; filename=${certificadoType}_${new Date().getTime()}_${
+          studentData.Cedula
+        }.pdf`
       );
       doc.pipe(res);
       doc.end();
 
-      // insertar en la tabla de certificados de la base de datos, siempre que nomas sean practicas
+      /*   // insertar en la tabla de certificados de la base de datos, siempre que nomas sean practicas
       if (certificadoType === "certificado-practicas") {
         db.query(
           "INSERT INTO certificados (Id_estudiante, Id_tipo_certificado, fecha_emision) VALUES (?, ?, ?)",
@@ -234,7 +323,7 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
             console.log(results);
           }
         );
-      }
+      } */
     }
   );
 });
