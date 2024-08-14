@@ -371,8 +371,9 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
                 doc.y,
                 { width: 450, align: "justify" }
               )
-              .moveDown(1);
-
+              .moveDown(2);
+            
+            doc.fontSize(12).font("Helvetica-Bold").text(`Ing, Armando Gilberto Franco Pico Mg.`, { align: "center" })
             // Agregar imagen al certificado
             const imagePath1 = path.join(
               __dirname,
