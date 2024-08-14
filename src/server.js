@@ -12,6 +12,7 @@ import cors from 'cors';
 import reportRouter from './routes/report.routes.js';
 import certificatesRotuer from './routes/certificates.routes.js';
 import informeRouter from './routes/informe.routes.js';
+import becaRouter from './routes/beca.routes.js';
 const app = express();
 config();
 
@@ -37,6 +38,7 @@ app.use('/api/report', reportRouter);
 app.use('/api/certificado', certificatesRotuer);
 app.use('/api/informe', informeRouter);
 app.use('/api/practice', practiceRouter);
+app.use('/api/beca', becaRouter);
 // Middleware para manejar sesiones
 app.use(
   session({

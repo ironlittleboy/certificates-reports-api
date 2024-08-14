@@ -44,7 +44,7 @@ export const handleCreateEstudiante = (req, res) => {
       }
 
       db.query(
-        `INSERT INTO estudiantes (Nombres, Cedula, email, Carrera, Id_Semestre, Id_periodo, CodigoMatricula, certificado) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO estudiantes (Nombres, Cedula, email, Carrera, Id_Semestre, Id_periodo, CodigoMatricula) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [name, cedula, email, carrera, semestre, periodo, codigomatricula],
         (err, result) => {
           if (err) {
@@ -56,6 +56,8 @@ export const handleCreateEstudiante = (req, res) => {
             });
             return;
           }
+          const insertedId = result.insertId;
+          console.log(result);
           res.status(200).json({
             status: true,
             message: "Estudiante guardado correctamente",
