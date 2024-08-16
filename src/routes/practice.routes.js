@@ -22,7 +22,7 @@ practiceRouter.get("/practices/:studentId", (req, res) => {
 
 practiceRouter.post("/save-practice/:studentId", (req, res) => {
   const { studentId } = req.params;
-  const { estadoPracticas, fechaFinalPracticas, fechaInicioPracticas, docentePracticas, tipoPracticas, lugarPracticas, idPeriodo } = req.body;
+  const { estadoPracticas, fechaFinalPracticas, fechaInicioPracticas, docentePracticas, tipoPracticas, lugarPracticas, idPeriodo, nivelPracticas } = req.body;
   console.log({
     estadoPracticas, 
     fechaInicioPracticas, 
@@ -31,7 +31,8 @@ practiceRouter.post("/save-practice/:studentId", (req, res) => {
     tipoPracticas, 
     lugarPracticas, 
     idPeriodo: parseInt(idPeriodo), 
-    studentId: parseInt(studentId)
+    studentId: parseInt(studentId),
+    nivelPracticas: parseInt(nivelPracticas)
   });
   // Validar que los campos no estén vacíos
   if (!estadoPracticas || !fechaInicioPracticas || !fechaFinalPracticas || !docentePracticas || !tipoPracticas || !lugarPracticas || !idPeriodo) {
@@ -42,7 +43,7 @@ practiceRouter.post("/save-practice/:studentId", (req, res) => {
     });
   }
 
-  db.query("INSERT INTO practicas (Estado_practicas, Fecha_practicas, Tutor_practicas, Tipo_de_practicas, Lugar_de_practicas, Id_estudiante, Id_periodo) VALUES (?, ?, ?, ?, ?, ?, ?)", [estadoPracticas, fechaInicioPracticas, docentePracticas, tipoPracticas, lugarPracticas, studentId, idPeriodo], (error, result) => {
+  db.query("INSERT INTO practicas (Estado_practicas, Fecha_practicas, Tutor_practicas, Tipo_de_practicas, Lugar_de_practicas, Id_estudiante, Id_periodo, nivel_practicas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [estadoPracticas, fechaInicioPracticas, docentePracticas, tipoPracticas, lugarPracticas, studentId, idPeriodo, nivelPracticas], (error, result) => {
     if (error) {
       console.log(error);
       return res.status(500).json({

@@ -12,9 +12,13 @@ const certificatesRotuer = Router();
 
 // Ruta para generar y descargar un certificado en PDF con datos dinámicos
 certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
-  const { certificadoType } = req.body;
+  const { certificadoType, nivelPracticas } = req.body; // nivelPracticas es correpodiente a practicas laborales I o II
   const studentId = req.params.id;
-
+  console.log({
+    certificadoType,
+    studentId,
+    nivelPracticas,
+  })
   // Consultar la base de datos para obtener los datos del estudiante
   db.query(
     "SELECT estudiantes.*, semestre.*, periodo.*, practicas.Lugar_de_practicas, practicas.Tutor_practicas, practicas.Estado_practicas, practicas.Tipo_de_practicas FROM estudiantes join semestre on estudiantes.Id_semestre = semestre.Id_semestre join periodo on estudiantes.Id_periodo = periodo.Id_periodo left join practicas on estudiantes.Id_estudiante = practicas.Id_estudiante WHERE estudiantes.Id_estudiante = ?",
@@ -40,7 +44,8 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
       // console.log(studentData);
       // Iniciar el documento PDF
       const doc = new PDFDocument();
-
+      console.log("Generando certificado:", certificadoType);
+      console.log(studentData);
       // Configurar encabezados, fuentes, estilos, etc.
       doc.font("Helvetica");
 
@@ -131,7 +136,7 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
             doc.y,
             { width: 450, align: "justify", continued: true }
           );
-        doc.font("Helvetica-Bold").text("48 horas ", { continued: true });
+        doc.font("Helvetica-Bold").text("180 horas ", { continued: true });
         doc
           .font("Helvetica")
           .fontSize(12)
@@ -141,7 +146,7 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
         doc
           .font("Helvetica-Bold")
           .fontSize(12)
-          .text('"Practicas Laborales II (Octavo Nivel)" ', {
+          .text(`"${nivelPracticas === '1' ? "Practicas preprofesionales I" : "Practicas preprofesionales II"}" (${studentData.Nombre_semestre}) "`, {
             continued: true,
           });
         doc

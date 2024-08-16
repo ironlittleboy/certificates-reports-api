@@ -16,52 +16,78 @@ export const handleCreateEstudiante = (req, res) => {
       status: false,
     });
   }
-  // se verifica que la cedula no exista en la base de datos, con respecto al periodo
-  
+  // se verifica que el codigo de matricula no exista en la base de datos
   db.query(
-    "SELECT * FROM estudiantes join periodo on estudiantes.Id_periodo = periodo.Id_periodo WHERE Cedula = ? AND estudiantes.Id_periodo = ?",
-    [cedula, periodo],
+    "SELECT * FROM estudiantes WHERE CodigoMatricula = ?",
+    [codigomatricula],
     (error, results) => {
       if (error) {
-        console.error("Error al verificar la cédula:", error);
+        console.error("Error al verificar el código de matrícula:", error);
         return res.status(500).json({
-          error: "Error al verificar la cédula",
+          error: "Error al verificar el código de matrícula",
           status: false,
         });
       }
-      // console.log(results);
       if (results.length > 0) {
         console.log(
-          "Ya existe un estudiante con la cédula proporcionada en el periodo seleccionado: ",
-          results[0].Nombre_periodo
+          "Ya existe un estudiante con el código de matrícula proporcionado: ",
+          results[0].CodigoMatricula
         );
         return res.status(400).json({
           error:
-            "Ya existe un estudiante con la cédula proporcionada en el periodo seleccionado: " +
-            results[0].Nombre_periodo,
+            "Ya existe un estudiante con el código de matrícula proporcionado: " +
+            results[0].CodigoMatricula,
           status: false,
         });
       }
 
+      // se verifica que la cedula no exista en la base de datos, con respecto al periodo
       db.query(
-        `INSERT INTO estudiantes (Nombres, Cedula, email, Carrera, Id_Semestre, Id_periodo, CodigoMatricula) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [name, cedula, email, carrera, semestre, periodo, codigomatricula],
-        (err, result) => {
-          if (err) {
-            console.error("Error al guardar estudiante:", err);
-            res.status(500).json({
-              error: err.message,
+        "SELECT * FROM estudiantes join periodo on estudiantes.Id_periodo = periodo.Id_periodo WHERE Cedula = ? AND estudiantes.Id_periodo = ?",
+        [cedula, periodo],
+        (error, results) => {
+          if (error) {
+            console.error("Error al verificar la cédula:", error);
+            return res.status(500).json({
+              error: "Error al verificar la cédula",
               status: false,
-              message: "Error al guardar estudiante",
             });
-            return;
           }
-          const insertedId = result.insertId;
-          console.log(result);
-          res.status(200).json({
-            status: true,
-            message: "Estudiante guardado correctamente",
-          });
+          // console.log(results);
+          if (results.length > 0) {
+            console.log(
+              "Ya existe un estudiante con la cédula proporcionada en el periodo seleccionado: ",
+              results[0].Nombre_periodo
+            );
+            return res.status(400).json({
+              error:
+                "Ya existe un estudiante con la cédula proporcionada en el periodo seleccionado: " +
+                results[0].Nombre_periodo,
+              status: false,
+            });
+          }
+
+          db.query(
+            `INSERT INTO estudiantes (Nombres, Cedula, email, Carrera, Id_Semestre, Id_periodo, CodigoMatricula) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [name, cedula, email, carrera, semestre, periodo, codigomatricula],
+            (err, result) => {
+              if (err) {
+                console.error("Error al guardar estudiante:", err);
+                res.status(500).json({
+                  error: err.message,
+                  status: false,
+                  message: "Error al guardar estudiante",
+                });
+                return;
+              }
+              const insertedId = result.insertId;
+              console.log(result);
+              return res.status(200).json({
+                status: true,
+                message: "Estudiante guardado correctamente",
+              });
+            }
+          );
         }
       );
     }
@@ -132,7 +158,8 @@ export const searchStudent = (req, res) => {
         }
       );
     }
-    sqlQuery = "SELECT * FROM estudiantes WHERE Cedula LIKE ?";
+    sqlQuery =
+      "SELECT * FROM estudiantes  join periodo on estudiantes.Id_periodo = periodo.Id_periodo join semestre on estudiantes.Id_semestre = semestre.Id_semestre WHERE Cedula LIKE ?";
     sqlParams = [`%${value}%`];
 
     // Ejecuta la consulta con el término de búsqueda proporcionado
@@ -205,11 +232,22 @@ export const handleGetStudentById = (req, res) => {
         console.error("Error al obtener el estudiante:", error);
         return res.status(500).send("Error al obtener el estudiante");
       }
-      res.json({
-        status: true,
-        message: "Estudiante obtenido correctamente",
-        data: results[0],
+      db.query("select count(*) as count from reportes where Id_estudiante = ?", [id], (error, result) => {
+        if (error) {
+          console.error("Error al obtener el estudiante:", error);
+          return res.status(500).send("Error al obtener el estudiante");
+        }
+        results[0].count = result[0].count;
+        // console.log(results[0]);
+        res.json({
+          status: true,
+          message: "Estudiante obtenido correctamente",
+          data: results[0],
+          hasReport: results[0].count > 0
+        });
+
       });
+
     }
   );
 };
@@ -271,25 +309,24 @@ export const handleStudentByPracticeState = (req, res) => {
   }
 };
 
-
 export const handleGetStudents = (req, res) => {
-    db.query(
-      "select * from estudiantes join periodo on estudiantes.Id_periodo = periodo.Id_periodo join semestre on estudiantes.Id_semestre = semestre.Id_semestre;",
-      (error, results) => {
-        if (error) {
-          console.error("Error al obtener los estudiantes:", error);
-          res.status(500).json({ error: "Error al obtener los estudiantes" });
-        } else {
-          // console.log(results);
-          res.json({
-            status: true,
-            message: "Estudiantes obtenidos correctamente",
-            data: results,
-          });
-        }
+  db.query(
+    "select * from estudiantes join periodo on estudiantes.Id_periodo = periodo.Id_periodo join semestre on estudiantes.Id_semestre = semestre.Id_semestre;",
+    (error, results) => {
+      if (error) {
+        console.error("Error al obtener los estudiantes:", error);
+        res.status(500).json({ error: "Error al obtener los estudiantes" });
+      } else {
+        // console.log(results);
+        res.json({
+          status: true,
+          message: "Estudiantes obtenidos correctamente",
+          data: results,
+        });
       }
-    );
-}
+    }
+  );
+};
 
 export const handleSaveCharge = (req, res) => {
   const { data } = req.query;
@@ -344,7 +381,7 @@ export const handleSaveCharge = (req, res) => {
         CodigoMatricula,
         certificado_practicas,
       ];
-       return new Promise((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         db.query(sql, values, (error, results) => {
           if (error) {
             console.error("Error al insertar datos:", error);
@@ -379,4 +416,4 @@ export const handleSaveCharge = (req, res) => {
       message: "Error al procesar el archivo Excel.",
     });
   }
-}
+};
