@@ -12,16 +12,15 @@ const certificatesRotuer = Router();
 
 // Ruta para generar y descargar un certificado en PDF con datos dinámicos
 certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
-  const { certificadoType, nivelPracticas } = req.body; // nivelPracticas es correpodiente a practicas laborales I o II
+  const { certificadoType } = req.body; // nivelPracticas es correpodiente a practicas laborales I o II
   const studentId = req.params.id;
-  console.log({
+ /*  console.log({
     certificadoType,
     studentId,
-    nivelPracticas,
-  })
+  }) */
   // Consultar la base de datos para obtener los datos del estudiante
   db.query(
-    "SELECT estudiantes.*, semestre.*, periodo.*, practicas.Lugar_de_practicas, practicas.Tutor_practicas, practicas.Estado_practicas, practicas.Tipo_de_practicas FROM estudiantes join semestre on estudiantes.Id_semestre = semestre.Id_semestre join periodo on estudiantes.Id_periodo = periodo.Id_periodo left join practicas on estudiantes.Id_estudiante = practicas.Id_estudiante WHERE estudiantes.Id_estudiante = ?",
+    "SELECT estudiantes.*, semestre.*, periodo.*, practicas.Lugar_de_practicas, practicas.Tutor_practicas, practicas.Estado_practicas, practicas.Tipo_de_practicas, practicas.nivel_practicas FROM estudiantes join semestre on estudiantes.Id_semestre = semestre.Id_semestre join periodo on estudiantes.Id_periodo = periodo.Id_periodo left join practicas on estudiantes.Id_estudiante = practicas.Id_estudiante WHERE estudiantes.Id_estudiante = ?",
     [studentId],
     (error, results) => {
       if (error) {
@@ -146,7 +145,7 @@ certificatesRotuer.post("/generate-certificado/:id", (req, res) => {
         doc
           .font("Helvetica-Bold")
           .fontSize(12)
-          .text(`"${nivelPracticas === '1' ? "Practicas preprofesionales I" : "Practicas preprofesionales II"}" (${studentData.Nombre_semestre}) "`, {
+          .text(`"${studentData.nivel_practicas === 1 ? "Practicas preprofesionales I" : "Practicas preprofesionales II"}" (${studentData.Nombre_semestre}) "`, {
             continued: true,
           });
         doc
